@@ -103,7 +103,28 @@ async function run() {
       }
     });
 
-    // app.post('/brands')
+    const brandCollection = client.db("productDB").collection("brand");
+
+    app.get("/api/brands", async (req, res) => {
+      try {
+        const cursor = productCollection.find();
+        const brands = await cursor.toArray();
+        res.status(200).json({ status: "success", data: brands });
+      } catch (error) {
+        console.log("[BRANDS_GET]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
+    });
+
+    app.post("/api/brands", async (req, res) => {
+      const data = req.body;
+
+      const brand = await brandCollection.insertOne(data);
+      return res.json(brand);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("productDB").command({ ping: 1 });
