@@ -9,6 +9,7 @@ const app = express();
 
 // middlewares
 app.use(cors());
+app.use(express.json());
 
 const uri = process.env.MONGO_URL;
 
@@ -26,6 +27,83 @@ async function run() {
     await client.connect();
 
     const productCollection = client.db("productDB").collection("product");
+
+    app.get("/api/products", async (req, res) => {
+      try {
+        const cursor = productCollection.find();
+        const products = await cursor.toArray();
+        res.status(200).json({ status: "success", data: products });
+      } catch (error) {
+        console.log("[PRODUCTS_GET]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
+    });
+
+    app.get("/api/products/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+
+        const product = await productCollection.findOne(query);
+        res.status(200).json({
+          status: "success",
+          data: product,
+        });
+      } catch (error) {
+        console.log("[PRODUCT_GET]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
+    });
+
+    app.post("/api/products", async (req, res) => {
+      try {
+        const newProducts = req.body;
+
+        const { imageUrl, name, brandName, type, price, description, rating } =
+          newProducts;
+
+        if (
+          !imageUrl ||
+          !name ||
+          !brandName ||
+          !type ||
+          !price ||
+          !description ||
+          rating
+        )
+          return res.status(400).json({
+            status: "error",
+            message: "Missing required fields",
+          });
+
+        if (price < 1 || rating < 1 || rating > 5)
+          return res.status(400).json({
+            status: "error",
+            message: "Please provide valid input value",
+          });
+
+        const product = await productCollection.insertOne(newProducts);
+
+        res.status(200).json({
+          status: "success",
+          data: product,
+        });
+      } catch (error) {
+        console.log("[PRODUCTS_POST]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
+    });
+
+    // app.post('/brands')
 
     // Send a ping to confirm a successful connection
     await client.db("productDB").command({ ping: 1 });
