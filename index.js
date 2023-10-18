@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 
 dotenv.config();
 
@@ -107,11 +107,30 @@ async function run() {
 
     app.get("/api/brands", async (req, res) => {
       try {
-        const cursor = productCollection.find();
+        const cursor = brandCollection.find();
         const brands = await cursor.toArray();
         res.status(200).json({ status: "success", data: brands });
       } catch (error) {
         console.log("[BRANDS_GET]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
+    });
+
+    app.get("/api/brands/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+
+        const brand = await brandCollection.findOne(query);
+        res.status(200).json({
+          status: "success",
+          data: brand,
+        });
+      } catch (error) {
+        console.log("[BRAND_GET]", error);
         res.status(500).json({
           status: "error",
           message: "Internal error",
