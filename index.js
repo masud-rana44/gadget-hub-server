@@ -75,7 +75,7 @@ async function run() {
           !type ||
           !price ||
           !description ||
-          rating
+          !rating
         )
           return res.status(400).json({
             status: "error",
@@ -136,7 +136,6 @@ async function run() {
     app.get("/api/brands/:brandName/products", async (req, res) => {
       try {
         const name = req.params.brandName;
-        console.log(name);
         const query = { brandName: name };
 
         const products = await brandsProductCollection.find(query).toArray();
@@ -163,7 +162,6 @@ async function run() {
         const query = { _id: new ObjectId(id), brandName: name };
 
         const product = await brandsProductCollection.findOne(query);
-        console.log(product);
 
         res.status(200).json({
           status: "success",
@@ -180,10 +178,38 @@ async function run() {
 
     app.post("/api/brandsProduct", async (req, res) => {
       const data = req.body;
-      console.log(data);
 
       const brand = await brandsProductCollection.insertMany(data);
       return res.json(brand);
+    });
+
+    app.patch("/api/brands/:brandName/products/:id", async (req, res) => {
+      try {
+        const name = req.params.brandName;
+        const id = req.params.id;
+        const data = req.body;
+
+        const filter = { _id: new ObjectId(id), brandName: name };
+        const update = { $set: data };
+        const options = { upsert: false };
+
+        const updatedProduct = await brandsProductCollection.updateOne(
+          filter,
+          update,
+          options
+        );
+
+        res.status(200).json({
+          status: "success",
+          data: updatedProduct,
+        });
+      } catch (error) {
+        console.log("[BRAND_PRODUCT_PATCH]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
     });
 
     app.delete("/api/brandsProduct", async (req, res) => {
