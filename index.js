@@ -139,7 +139,6 @@ async function run() {
         const query = { brandName: name };
 
         const products = await brandsProductCollection.find(query).toArray();
-        console.log(products);
 
         res.status(200).json({
           status: "success",
@@ -215,6 +214,75 @@ async function run() {
     app.delete("/api/brandsProduct", async (req, res) => {
       const brand = await brandsProductCollection.deleteMany({});
       return res.json(brand);
+    });
+
+    // Cart collection
+    const cartCollection = client.db("productDB").collection("Cart");
+
+    app.get("/api/carts/:userId", async (req, res) => {
+      try {
+        const id = req.params.userId;
+        const query = { _id: new ObjectId(id) };
+
+        const data = await cartCollection.find(query).toArray();
+
+        res.status(200).json({
+          status: "success",
+          data,
+        });
+      } catch (error) {
+        console.log("[CARTS_GET]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
+    });
+
+    app.post("/api/carts", async (req, res) => {
+      try {
+        const newItem = req.body;
+        const { userId, productId } = newItem;
+
+        if ((!userId, !productId))
+          return res.status(400).json({
+            status: "error",
+            message: "Missing required fields",
+          });
+
+        const data = await cartCollection.insertOne(newItem);
+
+        res.status(200).json({
+          status: "success",
+          data,
+        });
+      } catch (error) {
+        console.log("[CARTS_POST]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
+    });
+
+    app.delete("/api/carts/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+
+        const data = await cartCollection.deleteOne(filter);
+
+        res.status(200).json({
+          status: "success",
+          data,
+        });
+      } catch (error) {
+        console.log("[CARTS_DELETE]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
     });
 
     // Send a ping to confirm a successful connection
