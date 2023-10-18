@@ -105,6 +105,8 @@ async function run() {
 
     const brandCollection = client.db("productDB").collection("brand");
 
+    // Brands
+
     app.get("/api/brands", async (req, res) => {
       try {
         const cursor = brandCollection.find();
@@ -119,18 +121,33 @@ async function run() {
       }
     });
 
-    app.get("/api/brands/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
+    app.post("/api/brands", async (req, res) => {
+      const data = req.body;
 
-        const brand = await brandCollection.findOne(query);
+      const brand = await brandCollection.insertOne(data);
+      return res.json(brand);
+    });
+
+    // Brands Product
+    const brandsProductCollection = client
+      .db("productDB")
+      .collection("brandsProduct");
+
+    app.get("/api/brands/:brandName/products", async (req, res) => {
+      try {
+        const name = req.params.brandName;
+        console.log(name);
+        const query = { brandName: name };
+
+        const products = await brandsProductCollection.find(query).toArray();
+        console.log(products);
+
         res.status(200).json({
           status: "success",
-          data: brand,
+          data: products,
         });
       } catch (error) {
-        console.log("[BRAND_GET]", error);
+        console.log("[BRAND_PRODUCTS_GET]", error);
         res.status(500).json({
           status: "error",
           message: "Internal error",
@@ -138,10 +155,39 @@ async function run() {
       }
     });
 
-    app.post("/api/brands", async (req, res) => {
-      const data = req.body;
+    app.get("/api/brands/:brandName/products/:id", async (req, res) => {
+      try {
+        const name = req.params.brandName;
+        const id = req.params.id;
 
-      const brand = await brandCollection.insertOne(data);
+        const query = { _id: new ObjectId(id), brandName: name };
+
+        const product = await brandsProductCollection.findOne(query);
+        console.log(product);
+
+        res.status(200).json({
+          status: "success",
+          data: product,
+        });
+      } catch (error) {
+        console.log("[BRAND_PRODUCT_GET]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
+    });
+
+    app.post("/api/brandsProduct", async (req, res) => {
+      const data = req.body;
+      console.log(data);
+
+      const brand = await brandsProductCollection.insertMany(data);
+      return res.json(brand);
+    });
+
+    app.delete("/api/brandsProduct", async (req, res) => {
+      const brand = await brandsProductCollection.deleteMany({});
       return res.json(brand);
     });
 
