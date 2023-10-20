@@ -1,9 +1,8 @@
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
-import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
+const express = require("express");
+const cors = require("cors");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
-dotenv.config();
+require("dotenv").config();
 
 const app = express();
 
@@ -24,7 +23,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const productCollection = client
       .db("productDB")
