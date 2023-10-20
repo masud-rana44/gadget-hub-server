@@ -26,8 +26,11 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    const productCollection = client.db("productDB").collection("product");
+    const productCollection = client
+      .db("productDB")
+      .collection("brandsProduct");
 
+    // Gets All the product
     app.get("/api/products", async (req, res) => {
       try {
         const cursor = productCollection.find();
@@ -42,6 +45,7 @@ async function run() {
       }
     });
 
+    // Get products by ID
     app.get("/api/products/:id", async (req, res) => {
       try {
         const id = req.params.id;
@@ -61,6 +65,7 @@ async function run() {
       }
     });
 
+    // Create new product
     app.post("/api/products", async (req, res) => {
       try {
         const newProducts = req.body;
@@ -103,9 +108,67 @@ async function run() {
       }
     });
 
-    const brandCollection = client.db("productDB").collection("brand");
+    // Insert many product
+    app.post("/api/products/many", async (req, res) => {
+      const data = req.body;
 
+      const brand = await productCollection.insertMany(data);
+      return res.json(brand);
+    });
+
+    // Update a product
+    app.patch("/api/products/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const data = req.body;
+
+        const filter = { _id: new ObjectId(id) };
+        const update = { $set: data };
+        const options = { upsert: false };
+
+        const updatedProduct = await productCollection.updateOne(
+          filter,
+          update,
+          options
+        );
+
+        res.status(200).json({
+          status: "success",
+          data: updatedProduct,
+        });
+      } catch (error) {
+        console.log("[BRAND_PRODUCT_PATCH]", error);
+        res.status(500).json({
+          status: "error",
+          message: "Internal error",
+        });
+      }
+    });
+
+    // Delete all
+    app.delete("/api/products/all", async (req, res) => {
+      const brand = await productCollection.deleteMany({});
+      return res.json(brand);
+    });
+
+    // -------------------------------------------------------------
     // Brands
+
+    // Delete all
+    app.delete("/api/brands/all", async (req, res) => {
+      const brand = await brandCollection.deleteMany({});
+      return res.json(brand);
+    });
+
+    // Insert many product
+    app.post("/api/brands/many", async (req, res) => {
+      const data = req.body;
+
+      const brand = await brandCollection.insertMany(data);
+      return res.json(brand);
+    });
+
+    const brandCollection = client.db("productDB").collection("brand");
 
     app.get("/api/brands", async (req, res) => {
       try {
@@ -128,17 +191,12 @@ async function run() {
       return res.json(brand);
     });
 
-    // Brands Product
-    const brandsProductCollection = client
-      .db("productDB")
-      .collection("brandsProduct");
-
     app.get("/api/brands/:brandName/products", async (req, res) => {
       try {
         const name = req.params.brandName;
         const query = { brandName: name };
 
-        const products = await brandsProductCollection.find(query).toArray();
+        const products = await productCollection.find(query).toArray();
 
         res.status(200).json({
           status: "success",
@@ -153,76 +211,13 @@ async function run() {
       }
     });
 
-    app.get("/api/brands/:brandName/products/:id", async (req, res) => {
-      try {
-        const name = req.params.brandName;
-        const id = req.params.id;
-
-        const query = { _id: new ObjectId(id), brandName: name };
-
-        const product = await brandsProductCollection.findOne(query);
-
-        res.status(200).json({
-          status: "success",
-          data: product,
-        });
-      } catch (error) {
-        console.log("[BRAND_PRODUCT_GET]", error);
-        res.status(500).json({
-          status: "error",
-          message: "Internal error",
-        });
-      }
-    });
-
-    app.post("/api/brandsProduct", async (req, res) => {
-      const data = req.body;
-
-      const brand = await brandsProductCollection.insertMany(data);
-      return res.json(brand);
-    });
-
-    app.patch("/api/brands/:brandName/products/:id", async (req, res) => {
-      try {
-        const name = req.params.brandName;
-        const id = req.params.id;
-        const data = req.body;
-
-        const filter = { _id: new ObjectId(id), brandName: name };
-        const update = { $set: data };
-        const options = { upsert: false };
-
-        const updatedProduct = await brandsProductCollection.updateOne(
-          filter,
-          update,
-          options
-        );
-
-        res.status(200).json({
-          status: "success",
-          data: updatedProduct,
-        });
-      } catch (error) {
-        console.log("[BRAND_PRODUCT_PATCH]", error);
-        res.status(500).json({
-          status: "error",
-          message: "Internal error",
-        });
-      }
-    });
-
-    app.delete("/api/brandsProduct", async (req, res) => {
-      const brand = await brandsProductCollection.deleteMany({});
-      return res.json(brand);
-    });
-
     // Cart collection
     const cartCollection = client.db("productDB").collection("Cart");
 
     app.get("/api/carts/:userId", async (req, res) => {
       try {
-        const id = req.params.userId;
-        const query = { _id: new ObjectId(id) };
+        const userId = req.params.userId;
+        const query = { userId };
 
         const data = await cartCollection.find(query).toArray();
 
@@ -250,6 +245,13 @@ async function run() {
             message: "Missing required fields",
           });
 
+        const isExists = await cartCollection.findOne(newItem);
+        if (isExists)
+          return res.status(400).json({
+            status: "error",
+            message: "Product already exists in the cart",
+          });
+
         const data = await cartCollection.insertOne(newItem);
 
         res.status(200).json({
@@ -268,9 +270,11 @@ async function run() {
     app.delete("/api/carts/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        const filter = { _id: new ObjectId(id) };
+        const filter = { productId: id };
 
         const data = await cartCollection.deleteOne(filter);
+
+        console.log(data);
 
         res.status(200).json({
           status: "success",
